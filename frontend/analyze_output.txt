@@ -1,0 +1,31 @@
+﻿Analyzing frontend...                                           
+
+   info - Type could be non-nullable - lib\controllers\auth_controller.dart:110:34 - unnecessary_nullable_for_final_variable_declarations
+   info - Don't invoke 'print' in production code - lib\controllers\dashboard_controller.dart:52:7 - avoid_print
+warning - Unused import: 'screens/hub_screen.dart' - lib\main.dart:8:8 - unused_import
+   info - Parameter 'key' could be a super parameter - lib\main.dart:40:9 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\main.dart:62:9 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\screens\asset_detail_screen.dart:8:9 - use_super_parameters
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\asset_detail_screen.dart:84:60 - undefined_getter
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\asset_detail_screen.dart:89:62 - undefined_getter
+   info - Parameter 'key' could be a super parameter - lib\screens\auth_screen.dart:8:3 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\screens\hub_screen.dart:10:3 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\screens\main_layout.dart:18:3 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\screens\market_discovery_screen.dart:7:9 - use_super_parameters
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\market_discovery_screen.dart:136:58 - undefined_getter
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\market_discovery_screen.dart:142:60 - undefined_getter
+   info - Parameter 'key' could be a super parameter - lib\screens\portfolio_screen.dart:11:9 - use_super_parameters
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\portfolio_screen.dart:78:59 - undefined_getter
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\portfolio_screen.dart:103:74 - undefined_getter
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\portfolio_screen.dart:104:136 - undefined_getter
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\portfolio_screen.dart:116:155 - undefined_getter
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\portfolio_screen.dart:140:83 - undefined_getter
+  error - The getter 'success' isn't defined for the type 'AppTheme' - lib\screens\portfolio_screen.dart:143:119 - undefined_getter
+   info - Parameter 'key' could be a super parameter - lib\screens\signup_screen.dart:8:3 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\widgets\balance_card.dart:10:3 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\widgets\dashboard_widgets.dart:10:3 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\widgets\dashboard_widgets.dart:65:3 - use_super_parameters
+warning - Unused import: '../theme/app_theme.dart' - lib\widgets\glass_container.dart:3:8 - unused_import
+   info - Parameter 'key' could be a super parameter - lib\widgets\glass_container.dart:15:9 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\widgets\line_chart_widget.dart:7:9 - use_super_parameters
+
