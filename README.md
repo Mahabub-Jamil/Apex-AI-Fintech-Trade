@@ -1,4 +1,4 @@
-# 🚀 Apex AI Fintech Trade
+# 🚀 Apex-Nexus: AI-Powered Fintech Suite
 
 <p align="center">
   <img src="https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white" alt="Flutter" />
@@ -7,45 +7,74 @@
   <img src="https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white" alt="Gemini AI" />
 </p>
 
-**Apex AI Fintech Trade** is a high-performance, AI-driven cryptocurrency trading simulator built with a modern full-stack architecture. It bridges the gap between real-time market data and artificial intelligence, providing users with a safe environment to practice trading while receiving personalized insights from Google Gemini AI.
+**Apex-Nexus** is a cutting-edge, professional-grade cryptocurrency portfolio application. It features real-time market polling, a robust mock trading engine, and dynamic **Gemini AI** portfolio reviews. The application is built using a modern decoupled architecture: a **Flutter + GetX** mobile client backed by a highly secure **Next.js + Firebase** REST API.
 
 ---
 
-## 💎 Core Features
+## 📸 Key Features
 
-* **🧠 Intelligent AI Sentiment:** Leverages **Gemini 1.5 Flash** to analyze live market trends and provide Bullish/Bearish sentiment analysis.
-* **💹 Real-Time Market Ticker:** Streams live price data for top cryptocurrencies via the **CoinGecko API**.
-* **💰 Paper Trading Simulator:** New users are instantiated with a **$10,000 virtual balance** in **Cloud Firestore** to execute trades without financial risk.
-* **📊 Dynamic Portfolio Analytics:** Features interactive **Pie Charts** and **Performance Graphs** that recalculate net worth in real-time as market prices fluctuate.
-* **🛡️ Secure Authentication:** Robust user onboarding flow powered by **Firebase Auth**, ensuring secure access to personal trading ledgers.
-* **⚡ Next.js Backend:** A scalable server-side architecture using **Turbopack** for optimized API routing and AI model management.
-
----
-
-## 🛠️ Technical Stack
-
-### **Frontend (Mobile)**
-* **Framework:** Flutter (Android/iOS)
-* **State Management:** GetX (Reactive architecture)
-* **UI/UX:** Glassmorphism Design, Custom Shimmer Effects, and Responsive Layouts
-
-### **Backend & Infrastructure**
-* **Server:** Next.js 15+ with TypeScript
-* **AI Engine:** Google Generative AI (Gemini SDK)
-* **Database:** Google Cloud Firestore (NoSQL)
-* **Security:** Firebase Security Rules for user-specific data isolation
+- **🔐 Auth & Security:** Secure Email/Password onboarding and Local Biometric Auth powered by **Firebase**.
+- **📈 Real-Time Markets:** Live asset price aggregation via the **CoinGecko API** streaming directly to the dashboard.
+- **💎 Glassmorphic UI:** A premium "Deep Dark" mode aesthetic featuring beautifully frosted, high-performance Glassmorphism.
+- **🛠️ Mock Trading Engine:** Execute simulated Buy/Sell orders starting with a virtual **$10,000 balance** instantiated upon sign-up.
+- **📊 Real-Time P&L:** Total Invested, Current Value, and individualized Asset ROI dynamically computed as market prices fluctuate.
+- **🧠 AI Portfolio Advisor:** Powered by **Google Gemini 1.5 Flash**, the app analyzes your explicit holdings to generate custom strategic investment advice.
+- **📑 Transaction Ledger:** Immutable, granular transaction history permanently logged to Firestore sub-collections for audit-ready records.
 
 ---
 
-## 📂 Architecture Overview
+## 🛠️ Tech Stack
 
-```bash
-├── frontend/               # Flutter Mobile Application
-│   ├── lib/
-│   │   ├── controllers/    # Business logic & API handlers (GetX)
-│   │   ├── models/         # Data structures for Coins & Users
-│   │   ├── screens/        # UI Layers (Hub, Auth, Portfolio)
-│   │   └── widgets/        # Reusable Glassmorphic components
-└── backend/                # Next.js API Services
-    ├── src/app/api/        # Serverless functions for AI & Trading
-    └── .env                # Environment configuration
+### **Frontend (Mobile App)**
+- **Framework:** Flutter (Dart)
+- **State Management:** GetX (Reactive Architecture)
+- **Charting Engine:** fl_chart & candlesticks
+- **Biometrics:** local_auth integration
+
+### **Backend (RESTful API)**
+- **Framework:** Next.js 15+ (TypeScript) & App Router
+- **Database:** Google Cloud Firestore (NoSQL)
+- **LLM Integration:** @google/generative-ai (Gemini SDK)
+- **Validation:** Zod schemas for type-safe API requests
+
+---
+
+## 🚀 Getting Started
+
+This repository is structured as a Monorepo. You will need a Firebase project and a Gemini API Key to run the full suite.
+
+### 1. Backend Setup (`/backend`)
+The backend securely executes trades, manages the Firebase Admin SDK, and interfaces with Gemini.
+
+1. `cd backend`
+2. `npm install`
+3. Create a `.env` file and provide your **GEMINI_API_KEY**.
+4. **Firebase Admin SDK:** Download your service account JSON from the Firebase Console, rename it to `service-account.json`, and place it in the root of the `/backend` folder.
+5. `npm run dev` to start the server on `localhost:3000`.
+
+### 2. Frontend Setup (`/frontend`)
+The Flutter client manages the local state and the premium UI components.
+
+1. `cd frontend`
+2. `flutter pub get`
+3. **Firebase Mobile Setup:** Register your apps in the Firebase Console and place the configuration files:
+   - Android: `google-services.json` in `/android/app/`
+   - iOS: `GoogleService-Info.plist` in `/ios/Runner/`
+4. Connect a device/emulator and run: `flutter run`.
+
+---
+
+## 🛡️ Firestore Architecture & Security Rules
+
+To ensure secure data isolation, copy the following into your **Firebase Console -> Firestore -> Rules**:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Wildcard applies read/write privileges strictly to the owner's Auth credential.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
