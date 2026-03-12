@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'dart:async';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../controllers/auth_controller.dart';
 import '../domain/repositories/market_repository.dart';
 
@@ -25,13 +26,7 @@ class DashboardController extends GetxController {
   // Stream subscription for SSE cleanup
   StreamSubscription? _marketSubscription;
 
-  String get baseUrl {
-    if (GetPlatform.isAndroid) {
-      return 'http://192.168.1.100:3000/api';
-    } else {
-      return 'http://localhost:3000/api';
-    }
-  }
+  String get baseUrl => dotenv.env['BACKEND_URL'] ?? 'http://localhost:3000/api';
 
   @override
   void onInit() {

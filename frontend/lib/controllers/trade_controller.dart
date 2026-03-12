@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'auth_controller.dart';
 import 'dart:io';
 
@@ -9,13 +10,7 @@ class TradeController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   var isLoading = false.obs;
 
-  String get baseUrl {
-    if (GetPlatform.isAndroid) {
-      return 'http://192.168.1.100:3000/api';
-    } else {
-      return 'http://localhost:3000/api';
-    }
-  }
+  String get baseUrl => dotenv.env['BACKEND_URL'] ?? 'http://localhost:3000/api';
 
   Future<bool> executeTrade(String coinId, String symbol, double amount, double currentPrice, bool isBuy) async {
     try {

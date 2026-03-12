@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 abstract class MarketRemoteDataSource {
   Stream<List<dynamic>> getMarketStream({
@@ -16,13 +17,7 @@ class MarketRemoteDataSourceImpl implements MarketRemoteDataSource {
   final HttpClient _client = HttpClient();
 
   // Helper for dynamic base URL depending on platform emulator vs device
-  String get baseUrl {
-    if (GetPlatform.isAndroid) {
-      return 'http://192.168.1.100:3000/api';
-    } else {
-      return 'http://localhost:3000/api';
-    }
-  }
+  String get baseUrl => dotenv.env['BACKEND_URL'] ?? 'http://localhost:3000/api';
 
   @override
   Stream<List<dynamic>> getMarketStream({
