@@ -60,6 +60,11 @@ class PortfolioScreen extends StatelessWidget {
             onPressed: _generatePdfReport,
             tooltip: 'Export PDF Report',
           ),
+          IconButton(
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            onPressed: () => _showAdjustBalanceDialog(context),
+            tooltip: 'Adjust Account Balance',
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -256,6 +261,65 @@ class PortfolioScreen extends StatelessWidget {
         backgroundColor: AppTheme.primary,
         icon: const Icon(Icons.currency_exchange),
         label: const Text('Trade', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+  void _showAdjustBalanceDialog(BuildContext context) {
+    final TextEditingController amountController = TextEditingController();
+    final authController = Get.find<AuthController>();
+    final double currentBalance = (authController.firestoreUserData['balanceUSD'] ?? 0.0).toDouble();
+    
+    amountController.text = currentBalance.toStringAsFixed(2);
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: const Text('Adjust Account Balance', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Set your actual cash balance to track real portfolio performance.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Balance (USD)',
+                labelStyle: const TextStyle(color: AppTheme.primary),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.primary)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+            onPressed: () async {
+              final double? newBalance = double.tryParse(amountController.text);
+              if (newBalance != null) {
+                final uid = authController.user.value?.uid;
+                if (uid != null) {
+                  await FirebaseFirestore.instance.collection('users').doc(uid).update({
+                    'balanceUSD': newBalance,
+                  });
+                  authController.firestoreUserData['balanceUSD'] = newBalance;
+                  authController.firestoreUserData.refresh();
+                  Get.back();
+                  Get.snackbar('Success', 'Balance updated to \$${newBalance.toStringAsFixed(2)}');
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

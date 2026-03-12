@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:candlesticks/candlesticks.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_container.dart';
+import '../domain/repositories/market_repository.dart';
 
 class AssetDetailScreen extends StatefulWidget {
   const AssetDetailScreen({Key? key}) : super(key: key);
@@ -14,18 +15,47 @@ class AssetDetailScreen extends StatefulWidget {
 class _AssetDetailScreenState extends State<AssetDetailScreen> {
   late Map<String, dynamic> coin;
   List<Candle> candles = [];
+  bool isLoadingHistory = true;
 
   @override
   void initState() {
     super.initState();
-    coin = Get.arguments as Map<String, dynamic>? ?? {
-      'symbol': 'UNK',
-      'name': 'Unknown',
-      'current_price': 0.0,
       'price_change_percentage_24h': 0.0,
       'aiTrend': 'Neutral',
     };
-    _generateMockCandles();
+    _fetchHistoricalData();
+  }
+
+  Future<void> _fetchHistoricalData() async {
+    try {
+      final repository = Get.find<MarketRepository>();
+      final historyData = await repository.getAssetHistory(
+        coinId: coin['id'] ?? '',
+        days: '7',
+      );
+
+      if (mounted) {
+        setState(() {
+          candles = historyData.map((d) {
+            // CoinGecko OHLC format: [time, open, high, low, close]
+            return Candle(
+              date: DateTime.fromMillisecondsSinceEpoch(d[0]),
+              open: (d[1] as num).toDouble(),
+              high: (d[2] as num).toDouble(),
+              low: (d[3] as num).toDouble(),
+              close: (d[4] as num).toDouble(),
+              volume: 1000.0, // CG OHLC doesn't always provide volume per candle, using placeholder
+            );
+          }).toList().reversed.toList(); // Reverse to match candlestick widget order
+          isLoadingHistory = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching history: $e');
+      if (mounted) {
+        setState(() => isLoadingHistory = false);
+      }
+    }
   }
 
   double _parseValue(dynamic value) {
@@ -35,26 +65,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
      return double.tryParse(value.toString()) ?? 0.0;
   }
 
-  void _generateMockCandles() {
-    // Generate some mock candlestick data based on the current price
-    double currentPrice = _parseValue(coin['current_price']);
-    DateTime now = DateTime.now();
-    for (int i = 0; i < 50; i++) {
-        double open = currentPrice + (i * 0.5) * (i % 2 == 0 ? 1 : -1);
-        double close = open + (1.2) * (i % 3 == 0 ? 1 : -1);
-        double high = open > close ? open + 2 : close + 2;
-        double low = open < close ? open - 2 : close - 2;
-        
-        candles.add(Candle(
-          date: now.subtract(Duration(days: i)),
-          high: high,
-          low: low,
-          open: open,
-          close: close,
-          volume: 1000.0 + (i * 10),
-        ));
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -129,9 +140,13 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                 height: 300,
                 child: GlassContainer(
                   padding: const EdgeInsets.all(8),
-                  child: Candlesticks(
-                    candles: candles,
-                  ),
+                  child: isLoadingHistory 
+                    ? const Center(child: CircularProgressIndicator())
+                    : candles.isEmpty 
+                      ? const Center(child: Text('Historical data unavailable', style: TextStyle(color: Colors.white54)))
+                      : Candlesticks(
+                          candles: candles,
+                        ),
                 ),
               ),
               const SizedBox(height: 24),

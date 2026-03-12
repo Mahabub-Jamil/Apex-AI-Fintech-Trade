@@ -11,6 +11,11 @@ abstract class MarketRemoteDataSource {
     required int perPage,
     required int page,
   });
+  
+  Future<List<dynamic>> getAssetHistory({
+    required String coinId,
+    required String days,
+  });
 }
 
 class MarketRemoteDataSourceImpl implements MarketRemoteDataSource {
@@ -65,6 +70,30 @@ class MarketRemoteDataSourceImpl implements MarketRemoteDataSource {
 
       // If stream breaks, wait 5 seconds before attempting to reconnect
       await Future.delayed(const Duration(seconds: 5));
+    }
+  }
+
+  @override
+  Future<List<dynamic>> getAssetHistory({
+    required String coinId,
+    required String days,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/market/history?coinId=$coinId&days=$days');
+      final request = await _client.getUrl(uri);
+      final response = await request.close();
+      
+      if (response.statusCode == 200) {
+        final content = await response.transform(utf8.decoder).join();
+        final jsonResponse = jsonDecode(content);
+        if (jsonResponse['success'] == true) {
+          return jsonResponse['data'] as List<dynamic>;
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Asset History Error: $e');
+      return [];
     }
   }
 }

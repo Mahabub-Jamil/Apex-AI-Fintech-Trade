@@ -18,4 +18,15 @@ class MarketRepositoryImpl implements MarketRepository {
       page: page,
     );
   }
+
+  @override
+  Future<List<dynamic>> getAssetHistory({
+    required String coinId,
+    String days = '7',
+  }) {
+    return remoteDataSource.getAssetHistory(
+      coinId: coinId,
+      days: days,
+    );
+  }
 }

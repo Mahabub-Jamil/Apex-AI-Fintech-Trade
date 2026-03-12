@@ -5,4 +5,9 @@ abstract class MarketRepository {
     int perPage = 10,
     int page = 1,
   });
+
+  Future<List<dynamic>> getAssetHistory({
+    required String coinId,
+    String days = '7',
+  });
 }
