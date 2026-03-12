@@ -4,6 +4,7 @@ class UserEntity {
   final String firstName;
   final String lastName;
   final double balanceUSD;
+  final double realizedProfit;
   // Additional properties as needed by domain logic
   
   UserEntity({
@@ -12,6 +13,7 @@ class UserEntity {
     required this.firstName,
     required this.lastName,
     required this.balanceUSD,
+    this.realizedProfit = 0.0,
   });
 
   factory UserEntity.fromMap(Map<String, dynamic> map, String uid) {
@@ -21,6 +23,7 @@ class UserEntity {
       firstName: map['firstName'] ?? '',
       lastName: map['lastName'] ?? '',
       balanceUSD: (map['balanceUSD'] ?? 0.0).toDouble(),
+      realizedProfit: (map['realizedProfit'] ?? 0.0).toDouble(),
     );
   }
 
@@ -30,6 +33,7 @@ class UserEntity {
       'firstName': firstName,
       'lastName': lastName,
       'balanceUSD': balanceUSD,
+      'realizedProfit': realizedProfit,
     };
   }
 }

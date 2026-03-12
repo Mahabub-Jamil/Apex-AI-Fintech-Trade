@@ -71,6 +71,10 @@ class DashboardController extends GetxController {
           ? (userData['balanceUSD'] as int).toDouble() 
           : (userData['balanceUSD'] ?? 0.0) as double;
           
+      double realizedProfit = (userData['realizedProfit'] ?? 0.0) is int
+          ? (userData['realizedProfit'] as int).toDouble()
+          : (userData['realizedProfit'] ?? 0.0) as double;
+          
       double totalAssetsValue = 0.0;
       double totalAssetsCost = 0.0;
       
@@ -121,7 +125,7 @@ class DashboardController extends GetxController {
       
       balanceUSD.value = totalUsd;
       totalInvestedUSD.value = totalAssetsCost;
-      totalProfitUSD.value = totalAssetsValue - totalAssetsCost;
+      totalProfitUSD.value = realizedProfit + (totalAssetsValue - totalAssetsCost);
       balanceBDT.value = totalUsd * 110.0; // Example conversion rate
     } catch (e) {
       print("Valuation Error: $e");

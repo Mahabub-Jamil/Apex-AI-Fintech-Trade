@@ -27,6 +27,10 @@ class TradeController extends GetxController {
           ? (userData['balanceUSD'] as int).toDouble() 
           : (userData['balanceUSD'] ?? 0.0) as double;
       
+      double realizedProfit = (userData['realizedProfit'] ?? 0.0) is int
+          ? (userData['realizedProfit'] as int).toDouble()
+          : (userData['realizedProfit'] ?? 0.0) as double;
+      
       String holdingKey = symbol.toLowerCase();
       String legacyKey = coinId.toLowerCase();
       
@@ -88,6 +92,11 @@ class TradeController extends GetxController {
           Get.snackbar("Insufficient Holdings", "You only have ${currentAmount.toStringAsFixed(4)} $symbol.");
           return false;
         }
+        
+        // Calculate Realized Profit for this specific sale
+        double tradeProfit = (currentPrice - currentCostBasis) * amount;
+        realizedProfit += tradeProfit;
+
         balanceUSD += tradeValue;
         currentAmount -= amount;
         // Cost basis per unit doesn't change on a sale. 
@@ -115,11 +124,13 @@ class TradeController extends GetxController {
         // Update Firestore User Document
         await _firestore.collection('users').doc(user.uid).update({
           'balanceUSD': balanceUSD,
+          'realizedProfit': realizedProfit,
           'holdings': holdings
         });
 
         // Update local auth controller Map
         userData['balanceUSD'] = balanceUSD;
+        userData['realizedProfit'] = realizedProfit;
         userData['holdings'] = holdings;
         authController.firestoreUserData.refresh();
 

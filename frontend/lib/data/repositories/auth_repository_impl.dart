@@ -26,6 +26,7 @@ class AuthRepositoryImpl implements AuthRepository {
       'lastName': lastName,
       'email': email,
       'balanceUSD': 10000.0,
+      'realizedProfit': 0.0,
       'holdings': {},
       'createdAt': FieldValue.serverTimestamp(),
     };
