@@ -11,7 +11,7 @@ class TradeController extends GetxController {
 
   String get baseUrl {
     if (GetPlatform.isAndroid) {
-      return 'http://192.168.0.101:3000/api';
+      return 'http://192.168.1.100:3000/api';
     } else {
       return 'http://localhost:3000/api';
     }
@@ -32,10 +32,39 @@ class TradeController extends GetxController {
           ? (userData['balanceUSD'] as int).toDouble() 
           : (userData['balanceUSD'] ?? 0.0) as double;
       
+      String holdingKey = symbol.toLowerCase();
+      String legacyKey = coinId.toLowerCase();
+      
       Map<String, dynamic> holdings = Map<String, dynamic>.from(userData['holdings'] ?? {});
-      Map<String, dynamic> currentHoldingData = holdings[coinId] is Map 
-          ? Map<String, dynamic>.from(holdings[coinId] as Map) 
-          : {'amount': 0.0, 'costBasis': 0.0};
+      
+      // Migrate legacy key (e.g., 'bitcoin' -> 'btc')
+      if (holdings.containsKey(legacyKey) && holdingKey != legacyKey) {
+        var oldHoldings = holdings[legacyKey];
+        var newHoldings = holdings[holdingKey];
+        
+        double oldAmount = oldHoldings is Map ? ((oldHoldings['amount'] ?? 0.0) as num).toDouble() : (oldHoldings is num ? oldHoldings.toDouble() : 0.0);
+        double oldCostBasis = oldHoldings is Map ? ((oldHoldings['costBasis'] ?? 0.0) as num).toDouble() : currentPrice;
+        
+        double newAmount = newHoldings is Map ? ((newHoldings['amount'] ?? 0.0) as num).toDouble() : 0.0;
+        double newCostBasis = newHoldings is Map ? ((newHoldings['costBasis'] ?? 0.0) as num).toDouble() : 0.0;
+        
+        double totalAmount = oldAmount + newAmount;
+        double totalCost = (oldAmount * oldCostBasis) + (newAmount * newCostBasis);
+        double avgCostBasis = totalAmount > 0 ? (totalCost / totalAmount) : 0.0;
+        
+        holdings[holdingKey] = {
+           'amount': totalAmount,
+           'costBasis': avgCostBasis
+        };
+        holdings.remove(legacyKey);
+      }
+      
+      Map<String, dynamic> currentHoldingData = holdings[holdingKey] is Map 
+          ? Map<String, dynamic>.from(holdings[holdingKey] as Map) 
+          // support legacy format where the value was just a double
+          : holdings[holdingKey] is num 
+             ? {'amount': (holdings[holdingKey] as num).toDouble(), 'costBasis': currentPrice}
+             : {'amount': 0.0, 'costBasis': 0.0};
           
       double currentAmount = (currentHoldingData['amount'] ?? 0.0) is int 
           ? (currentHoldingData['amount'] as int).toDouble() 
@@ -73,7 +102,7 @@ class TradeController extends GetxController {
       }
 
       // Update Local Map for immediate reactivity
-      holdings[coinId] = {
+      holdings[holdingKey] = {
         'amount': currentAmount,
         'costBasis': currentCostBasis
       };

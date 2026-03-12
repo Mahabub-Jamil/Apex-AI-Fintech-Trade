@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/trade_bottom_sheet.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/dashboard_controller.dart';
 
 class PortfolioScreen extends StatelessWidget {
   const PortfolioScreen({Key? key}) : super(key: key);
@@ -66,26 +67,103 @@ class PortfolioScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Asset Allocation', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+            const Text('Your Asset Holdings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 16),
-            GlassContainer(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                height: 250,
-                child: PieChart(
-                  PieChartData(
-                    sectionsSpace: 2,
-                    centerSpaceRadius: 50,
-                    sections: [
-                      PieChartSectionData(color: AppTheme.primary, value: 40, title: 'BTC\n40%', radius: 60, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(color: AppTheme.accent, value: 30, title: 'ETH\n30%', radius: 60, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(color: AppTheme.success, value: 15, title: 'SOL\n15%', radius: 60, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(color: Colors.blueGrey, value: 15, title: 'USDC\n15%', radius: 60, titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            Obx(() {
+              final authController = Get.find<AuthController>();
+              final dashboardController = Get.find<DashboardController>();
+              final holdings = authController.firestoreUserData['holdings'] ?? {};
+              
+              if (holdings.isEmpty) {
+                return GlassContainer(
+                  padding: const EdgeInsets.all(16),
+                  child: const Center(child: Text("You don't own any assets yet.", style: TextStyle(color: Colors.white54))),
+                );
+              }
+
+              List<Widget> assetWidgets = [];
+              
+              // Calculate total assets value in USD (excluding cash balance)
+              double totalPortfolioValue = 0.0;
+              holdings.forEach((key, value) {
+                String symbol = key.toString().toUpperCase();
+                double amount = value is Map ? ((value['amount'] ?? 0.0) as num).toDouble() : (value as num).toDouble();
+                if (amount > 0) {
+                  var coinData = dashboardController.marketData.firstWhere(
+                     (coin) => coin['symbol'].toString().toUpperCase() == symbol || coin['id'].toString().toUpperCase() == symbol,
+                     orElse: () => null
+                  );
+                  if (coinData != null) {
+                    double currentPrice = (coinData['current_price'] as num).toDouble();
+                    totalPortfolioValue += (amount * currentPrice);
+                  }
+                }
+              });
+              
+              holdings.forEach((key, value) {
+                String symbol = key.toString().toUpperCase();
+                double amount = value is Map ? ((value['amount'] ?? 0.0) as num).toDouble() : (value as num).toDouble();
+                
+                if (amount > 0) {
+                  var coinData = dashboardController.marketData.firstWhere(
+                     (coin) => coin['symbol'].toString().toUpperCase() == symbol || coin['id'].toString().toUpperCase() == symbol,
+                     orElse: () => null
+                  );
+                  
+                  double currentPrice = 0.0;
+                  double assetValue = 0.0;
+                  if (coinData != null) {
+                    currentPrice = (coinData['current_price'] as num).toDouble();
+                    assetValue = amount * currentPrice;
+                  }
+
+                  double percentage = totalPortfolioValue > 0 ? (assetValue / totalPortfolioValue) * 100 : 0.0;
+
+                  assetWidgets.add(
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: GlassContainer(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                              child: Text(symbol.isNotEmpty ? symbol[0] : '?', style: const TextStyle(color: Colors.white)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(symbol, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text('${amount.toStringAsFixed(4)} $symbol', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text('\$${assetValue.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text('${percentage.toStringAsFixed(1)}% of Portfolio', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              });
+              
+              if (assetWidgets.isEmpty) {
+                 return GlassContainer(
+                  padding: const EdgeInsets.all(16),
+                  child: const Center(child: Text("You don't own any crypto yet.", style: TextStyle(color: Colors.white54))),
+                );
+              }
+
+              return Column(children: assetWidgets);
+            }),
             const SizedBox(height: 24),
             const Text('Recent Trades', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
             const SizedBox(height: 16),

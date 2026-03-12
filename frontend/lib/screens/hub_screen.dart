@@ -14,7 +14,7 @@ class HubScreen extends StatelessWidget {
   HubScreen({Key? key}) : super(key: key);
 
   final AuthController authController = Get.find<AuthController>();
-  final DashboardController dashboardController = Get.put(DashboardController());
+  final DashboardController dashboardController = Get.find<DashboardController>();
 
 
   @override
@@ -35,7 +35,7 @@ class HubScreen extends StatelessWidget {
         }
         
         return RefreshIndicator(
-          onRefresh: dashboardController.fetchDashboardData,
+          onRefresh: dashboardController.fetchAIPortfolioStrategy,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16.0),

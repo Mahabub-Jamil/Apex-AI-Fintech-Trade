@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_container.dart';
+import '../controllers/dashboard_controller.dart';
 
 class MarketDiscoveryScreen extends StatefulWidget {
   const MarketDiscoveryScreen({Key? key}) : super(key: key);
@@ -14,36 +15,31 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
-  // Mock list of 50+ coins
-  final List<Map<String, dynamic>> _allCoins = [
-    {'symbol': 'BTC', 'name': 'Bitcoin', 'price': 65432.10, 'change': 2.4, 'aiTrend': 'Bullish'},
-    {'symbol': 'ETH', 'name': 'Ethereum', 'price': 3456.78, 'change': 1.8, 'aiTrend': 'Neutral'},
-    {'symbol': 'SOL', 'name': 'Solana', 'price': 145.20, 'change': -5.2, 'aiTrend': 'Bearish'},
-    {'symbol': 'BNB', 'name': 'Binance Coin', 'price': 600.00, 'change': 0.5, 'aiTrend': 'Neutral'},
-    {'symbol': 'XRP', 'name': 'Ripple', 'price': 0.60, 'change': 1.1, 'aiTrend': 'Moderate Bullish'},
-    // Add more mock data...
-  ];
-
-  List<Map<String, dynamic>> _filteredCoins = [];
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _filteredCoins = _allCoins;
   }
 
-  void _filterCoins(String query) {
-    if (query.isEmpty) {
-      setState(() => _filteredCoins = _allCoins);
-      return;
+  List<Map<String, dynamic>> _getFilteredCoins(List<dynamic> marketData) {
+    if (_searchController.text.isEmpty) {
+      return marketData.cast<Map<String, dynamic>>();
     }
-    setState(() {
-      _filteredCoins = _allCoins.where((coin) => 
-        coin['name'].toString().toLowerCase().contains(query.toLowerCase()) || 
-        coin['symbol'].toString().toLowerCase().contains(query.toLowerCase())
-      ).toList();
-    });
+    return marketData
+        .cast<Map<String, dynamic>>()
+        .where((coin) => 
+          (coin['name']?.toString().toLowerCase().contains(_searchController.text.toLowerCase()) ?? false) || 
+          (coin['symbol']?.toString().toLowerCase().contains(_searchController.text.toLowerCase()) ?? false)
+        )
+        .toList();
+  }
+
+  // Helper safely parsing current_price that might come from JSON as int
+  double _parseValue(dynamic value) {
+     if (value == null) return 0.0;
+     if (value is int) return value.toDouble();
+     if (value is double) return value;
+     return double.tryParse(value.toString()) ?? 0.0;
   }
 
   @override
@@ -67,7 +63,7 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
-              onChanged: _filterCoins,
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Search coins...',
                 prefixIcon: const Icon(Icons.search, color: Colors.white54),
@@ -81,14 +77,29 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
             ),
           ),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCoinList(_filteredCoins),
-                _buildCoinList(_filteredCoins.where((c) => c['change'] > 0).toList()),
-                _buildCoinList(_filteredCoins.where((c) => c['change'] < 0).toList()),
-              ],
-            ),
+            child: Obx(() {
+              final dashboardController = Get.find<DashboardController>();
+              final marketData = dashboardController.marketData;
+              
+              if (dashboardController.isLoading.value && marketData.isEmpty) {
+                 return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (marketData.isEmpty) {
+                 return const Center(child: Text("No market data available.", style: TextStyle(color: Colors.white70)));
+              }
+              
+              final filteredCoins = _getFilteredCoins(marketData);
+
+              return TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildCoinList(filteredCoins),
+                  _buildCoinList(filteredCoins.where((c) => _parseValue(c['price_change_percentage_24h']) > 0).toList()),
+                  _buildCoinList(filteredCoins.where((c) => _parseValue(c['price_change_percentage_24h']) < 0).toList()),
+                ],
+              );
+            }),
           )
         ],
       ),
@@ -101,7 +112,12 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
       itemCount: coins.length,
       itemBuilder: (context, index) {
         final coin = coins[index];
-        final isPositive = coin['change'] >= 0;
+        final priceChange = _parseValue(coin['price_change_percentage_24h']);
+        final isPositive = priceChange >= 0;
+        
+        final symbol = (coin['symbol'] ?? '???').toString().toUpperCase();
+        final name = coin['name'] ?? 'Unknown';
+        final price = _parseValue(coin['current_price']);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
@@ -113,22 +129,22 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
                 children: [
                   CircleAvatar(
                     backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                    child: Text(coin['symbol'][0], style: const TextStyle(color: Colors.white)),
+                    child: Text(symbol.isNotEmpty ? symbol[0] : '?', style: const TextStyle(color: Colors.white)),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(coin['symbol'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(coin['name'], style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                        Text(symbol, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(name, style: const TextStyle(color: Colors.white54, fontSize: 12)),
                       ],
                     ),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('\$${coin['price'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('\$${price.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                       Row(
                         children: [
                           Icon(
@@ -137,7 +153,7 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
                             size: 14,
                           ),
                           Text(
-                            '${coin['change'].abs()}%',
+                            '${priceChange.abs().toStringAsFixed(2)}%',
                             style: TextStyle(
                               color: isPositive ? AppTheme.success : AppTheme.error,
                               fontSize: 12,
@@ -148,7 +164,7 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
                     ],
                   ),
                   const SizedBox(width: 12),
-                  // AI Trend Badge
+                  // AI Trend Badge (Mock for now since CoinGecko doesn't provide this directly)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -161,7 +177,7 @@ class _MarketDiscoveryScreenState extends State<MarketDiscoveryScreen> with Sing
                         const Icon(Icons.auto_awesome, size: 12, color: AppTheme.accent),
                         const SizedBox(width: 4),
                         Text(
-                          coin['aiTrend'],
+                          isPositive ? 'Bullish' : 'Bearish',
                           style: const TextStyle(fontSize: 10, color: AppTheme.accent, fontWeight: FontWeight.bold),
                         ),
                       ],

@@ -1,11 +1,14 @@
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
-import 'dart:io';
 import 'dart:async';
 import '../controllers/auth_controller.dart';
+import '../domain/repositories/market_repository.dart';
 
 class DashboardController extends GetxController {
+  final MarketRepository marketRepository;
   final Dio _dio = Dio();
+  
+  DashboardController({required this.marketRepository});
   
   // Observables
   var isLoading = true.obs;
@@ -19,12 +22,12 @@ class DashboardController extends GetxController {
   // To track individual coin P&L on the UI
   var coinPnL = <String, double>{}.obs;
   
-  // Background polling timer
-  Timer? _refreshTimer;
+  // Stream subscription for SSE cleanup
+  StreamSubscription? _marketSubscription;
 
   String get baseUrl {
     if (GetPlatform.isAndroid) {
-      return 'http://192.168.0.101:3000/api';
+      return 'http://192.168.1.100:3000/api';
     } else {
       return 'http://localhost:3000/api';
     }
@@ -33,22 +36,34 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchDashboardData();
     
-    // Start automatic background refresh
-    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      fetchDashboardData();
-    });
+    // Bind market stream
+    _marketSubscription = marketRepository.getMarketStream().listen(
+      (data) {
+        isLoading(false);
+        marketData.value = data;
+      },
+      onError: (err) {
+        print("Market Stream Error: $err");
+        isLoading(false);
+      }
+    );
+    
+    // Still need to fetch AI data manually just once or on demand
+    fetchAIPortfolioStrategy();
     
     // Reactively compute balances when market or user data changes
     ever(marketData, (_) => calculatePortfolioValue());
     final authController = Get.find<AuthController>();
-    ever(authController.firestoreUserData, (_) => calculatePortfolioValue());
+    ever(authController.firestoreUserData, (_) {
+      calculatePortfolioValue();
+      fetchAIPortfolioStrategy();
+    });
   }
 
   @override
   void onClose() {
-    _refreshTimer?.cancel();
+    _marketSubscription?.cancel();
     super.onClose();
   }
 
@@ -61,8 +76,8 @@ class DashboardController extends GetxController {
           ? (userData['balanceUSD'] as int).toDouble() 
           : (userData['balanceUSD'] ?? 0.0) as double;
           
-      double totalUsd = cashBalance;
-      double totalInvested = cashBalance; // Cash counts as retained value not yet "invested", but part of net worth.
+      double totalAssetsValue = 0.0;
+      double totalAssetsCost = 0.0;
       
       Map<String, dynamic> holdings = userData['holdings'] ?? {};
       
@@ -82,7 +97,7 @@ class DashboardController extends GetxController {
         }
         
         var coinData = marketData.firstWhere(
-            (coin) => coin['symbol'] == symbol, 
+            (coin) => coin['symbol'].toString().toLowerCase() == symbol || coin['id'].toString().toLowerCase() == symbol, 
             orElse: () => null
         );
         
@@ -94,8 +109,8 @@ class DashboardController extends GetxController {
           double currentValue = amount * currentPrice;
           double investmentValue = amount * costBasis;
           
-          totalUsd += currentValue;
-          totalInvested += investmentValue;
+          totalAssetsValue += currentValue;
+          totalAssetsCost += investmentValue;
 
           // Calculate Percentage Profit/Loss per coin
           if (costBasis > 0) {
@@ -107,30 +122,20 @@ class DashboardController extends GetxController {
         }
       }
       
+      double totalUsd = cashBalance + totalAssetsValue;
+      
       balanceUSD.value = totalUsd;
-      totalInvestedUSD.value = totalInvested;
-      totalProfitUSD.value = totalUsd - totalInvested;
+      totalInvestedUSD.value = totalAssetsCost;
+      totalProfitUSD.value = totalAssetsValue - totalAssetsCost;
       balanceBDT.value = totalUsd * 110.0; // Example conversion rate
     } catch (e) {
       print("Valuation Error: $e");
     }
   }
 
-  Future<void> fetchDashboardData() async {
+  Future<void> fetchAIPortfolioStrategy() async {
     try {
       isLoading(true);
-      // Fetch market stream
-      final marketResponse = await _dio.get('$baseUrl/market/stream', queryParameters: {
-        'vs_currency': 'usd',
-        'per_page': 10,
-      });
-
-      if (marketResponse.statusCode == 200 && marketResponse.data['success'] == true) {
-        marketData.value = marketResponse.data['data'];
-      }
-      
-      // Calculate balances immediately with new market data so we can pass accurate values to AI
-      calculatePortfolioValue();
 
       // Formulate Portfolio Array for AI Advice
       final authController = Get.find<AuthController>();
@@ -152,7 +157,7 @@ class DashboardController extends GetxController {
         
         if (amount > 0) {
           var coinData = marketData.firstWhere(
-              (coin) => coin['symbol'] == symbol, 
+              (coin) => coin['symbol'].toString().toLowerCase() == symbol || coin['id'].toString().toLowerCase() == symbol,  
               orElse: () => null
           );
           double currentValue = 0.0;

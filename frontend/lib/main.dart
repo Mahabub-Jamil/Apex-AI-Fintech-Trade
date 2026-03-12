@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
 import 'controllers/auth_controller.dart';
+import 'controllers/dashboard_controller.dart';
+import 'data/datasources/auth_remote_data_source.dart';
+import 'data/repositories/auth_repository_impl.dart';
+import 'data/datasources/market_remote_data_source.dart';
+import 'data/repositories/market_repository_impl.dart';
 import 'screens/auth_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/hub_screen.dart';
@@ -12,15 +18,17 @@ import 'screens/asset_detail_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  await dotenv.load(fileName: ".env");
+
   try {
     if (GetPlatform.isAndroid || GetPlatform.isIOS) {
       await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: 'AIzaSyBElnwSgEsFu-HDnw2Fd1Pl5UtbNzTQyKY',
-          appId: '1:1025250563014:android:9acef8140f59f463f998c7',
-          messagingSenderId: '1025250563014',
-          projectId: 'apex-nexus-fintech',
-          storageBucket: 'apex-nexus-fintech.firebasestorage.app',
+        options: FirebaseOptions(
+          apiKey: dotenv.env['FIREBASE_API_KEY'] ?? '',
+          appId: dotenv.env['FIREBASE_APP_ID'] ?? '',
+          messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
+          projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? '',
+          storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ?? '',
         ),
       );
     } else {
@@ -30,8 +38,17 @@ void main() async {
     debugPrint('Firebase initialization failed (Check configurations): $e');
   }
 
+  // Initialize Data Source & Repository
+  final authRemoteDataSource = AuthRemoteDataSourceImpl();
+  await authRemoteDataSource.init();
+  final authRepository = AuthRepositoryImpl(remoteDataSource: authRemoteDataSource);
+
+  final marketRemoteDataSource = MarketRemoteDataSourceImpl();
+  final marketRepository = MarketRepositoryImpl(remoteDataSource: marketRemoteDataSource);
+
   // Initialize Core Controllers
-  Get.put(AuthController());
+  Get.put(AuthController(authRepository: authRepository));
+  Get.put(DashboardController(marketRepository: marketRepository));
 
   runApp(const ApexNexusApp());
 }

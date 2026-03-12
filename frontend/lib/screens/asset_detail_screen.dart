@@ -21,16 +21,23 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
     coin = Get.arguments as Map<String, dynamic>? ?? {
       'symbol': 'UNK',
       'name': 'Unknown',
-      'price': 0.0,
-      'change': 0.0,
+      'current_price': 0.0,
+      'price_change_percentage_24h': 0.0,
       'aiTrend': 'Neutral',
     };
     _generateMockCandles();
   }
 
+  double _parseValue(dynamic value) {
+     if (value == null) return 0.0;
+     if (value is int) return value.toDouble();
+     if (value is double) return value;
+     return double.tryParse(value.toString()) ?? 0.0;
+  }
+
   void _generateMockCandles() {
     // Generate some mock candlestick data based on the current price
-    double currentPrice = coin['price'];
+    double currentPrice = _parseValue(coin['current_price']);
     DateTime now = DateTime.now();
     for (int i = 0; i < 50; i++) {
         double open = currentPrice + (i * 0.5) * (i % 2 == 0 ? 1 : -1);
@@ -51,7 +58,9 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isPositive = coin['change'] >= 0;
+    double currentPrice = _parseValue(coin['current_price']);
+    double change = _parseValue(coin['price_change_percentage_24h']);
+    final bool isPositive = change >= 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,7 +84,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('\$${coin['price'].toStringAsFixed(2)}', style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32)),
+                        Text('\$${currentPrice.toStringAsFixed(2)}', style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32)),
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -84,7 +93,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                               color: isPositive ? AppTheme.success : AppTheme.error,
                             ),
                             Text(
-                              '${coin['change'].abs()}% Past 24h',
+                              '${change.abs().toStringAsFixed(2)}% Past 24h',
                               style: TextStyle(
                                 color: isPositive ? AppTheme.success : AppTheme.error,
                                 fontWeight: FontWeight.bold,
@@ -104,7 +113,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                         children: [
                           const Icon(Icons.auto_awesome, color: AppTheme.accent),
                           const SizedBox(height: 4),
-                          Text(coin['aiTrend'], style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text(coin['aiTrend'] ?? 'Neutral', style: const TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold, fontSize: 12)),
                         ],
                       ),
                     ),

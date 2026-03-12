@@ -17,18 +17,21 @@ class _TradeBottomSheetState extends State<TradeBottomSheet> {
   final TradeController _tradeController = Get.put(TradeController());
   
   final TextEditingController _amountController = TextEditingController();
-  Map<String, dynamic>? _selectedCoin;
+  String? _selectedCoinSymbol;
 
   @override
   void initState() {
     super.initState();
     if (_dashboardController.marketData.isNotEmpty) {
-      _selectedCoin = _dashboardController.marketData.first;
+      _selectedCoinSymbol = _dashboardController.marketData.first['symbol'].toString();
     }
   }
 
   void _executeTrade(bool isBuy) async {
-    if (_selectedCoin == null) return;
+    if (_selectedCoinSymbol == null) return;
+    
+    final selectedCoinMap = _dashboardController.marketData.firstWhere((coin) => coin['symbol'].toString() == _selectedCoinSymbol, orElse: () => null);
+    if (selectedCoinMap == null) return;
     
     final double amount = double.tryParse(_amountController.text) ?? 0.0;
     if (amount <= 0.0) {
@@ -36,9 +39,9 @@ class _TradeBottomSheetState extends State<TradeBottomSheet> {
       return;
     }
 
-    final coinId = _selectedCoin!['id'] is String ? _selectedCoin!['id'] : _selectedCoin!['name'].toString().toLowerCase();
-    final symbol = _selectedCoin!['symbol'].toString();
-    final currentPrice = (_selectedCoin!['current_price'] as num).toDouble();
+    final coinId = selectedCoinMap['id'] is String ? selectedCoinMap['id'] : selectedCoinMap['name'].toString().toLowerCase();
+    final symbol = selectedCoinMap['symbol'].toString();
+    final currentPrice = (selectedCoinMap['current_price'] as num).toDouble();
 
     final success = await _tradeController.executeTrade(coinId, symbol, amount, currentPrice, isBuy);
     if (success) {
@@ -59,27 +62,36 @@ class _TradeBottomSheetState extends State<TradeBottomSheet> {
           const SizedBox(height: 16),
           
           if (_dashboardController.marketData.isNotEmpty) ... [
-            DropdownButtonFormField<Map<String, dynamic>>(
-              decoration: InputDecoration(
-                labelText: 'Select Asset',
-                labelStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.1),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-              ),
-              dropdownColor: const Color(0xFF1E1E2C),
-              value: _selectedCoin,
-              items: _dashboardController.marketData.map((coin) {
-                return DropdownMenuItem<Map<String, dynamic>>(
-                  value: coin,
-                  child: Text('${coin['name']} (${coin['symbol'].toString().toUpperCase()}) - \$${coin['current_price']}', 
-                    style: const TextStyle(color: Colors.white)),
-                );
-              }).toList().cast(),
-              onChanged: (val) {
-                setState(() => _selectedCoin = val);
-              },
-            ),
+            Obx(() {
+               if (_selectedCoinSymbol != null && !_dashboardController.marketData.any((c) => c['symbol'].toString() == _selectedCoinSymbol)) {
+                 _selectedCoinSymbol = null;
+               }
+               if (_selectedCoinSymbol == null && _dashboardController.marketData.isNotEmpty) {
+                 _selectedCoinSymbol = _dashboardController.marketData.first['symbol'].toString();
+               }
+
+               return DropdownButtonFormField<String>(
+                 decoration: InputDecoration(
+                   labelText: 'Select Asset',
+                   labelStyle: const TextStyle(color: Colors.white54),
+                   filled: true,
+                   fillColor: Colors.white.withValues(alpha: 0.1),
+                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                 ),
+                 dropdownColor: const Color(0xFF1E1E2C),
+                 value: _selectedCoinSymbol,
+                 items: _dashboardController.marketData.map((coin) {
+                   return DropdownMenuItem<String>(
+                     value: coin['symbol'].toString(),
+                     child: Text('${coin['name']} (${coin['symbol'].toString().toUpperCase()}) - \$${coin['current_price']}', 
+                       style: const TextStyle(color: Colors.white)),
+                   );
+                 }).toList().cast(),
+                 onChanged: (val) {
+                   setState(() => _selectedCoinSymbol = val);
+                 },
+               );
+            }),
             const SizedBox(height: 16),
             TextField(
               controller: _amountController,
